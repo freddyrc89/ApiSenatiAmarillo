@@ -146,7 +146,7 @@ def protected():
 @app.route('/alumnos', methods=['GET'])
 @jwt_required()
 def get_alumnos():
-    alumnos = alumnos.query.all()
+     alumnos = Alumno.query.all()
     return jsonify([{
         "id": alumnos.id,
         "dni": alumnos.dni,
