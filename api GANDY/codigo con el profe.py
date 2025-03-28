@@ -20,6 +20,7 @@ app.config['JWT_SECRET_KEY'] = 'rootgS3nati123'  # Cambiar esto por una clave m√
 # Inicializamos la base de datos y Flask-Migrate
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+jwt = JWTManager(app)
 
 # Ahora puedes seguir con la definici√≥n de las rutas y los modelos
 
@@ -152,6 +153,29 @@ def login_alumnos():
     access_token = create_access_token(identity=alumno.dni)
     return jsonify(access_token=access_token), 200
 
+@app.route('/login', methods=['POST'])
+def login():
+    dni = request.json.get('dni', None)
+    password = request.json.get('password', None)
+
+    user = Vigilante.query.filter_by(dni=dni).first()
+    user_type = "vigilante"
+    if not user:
+        user = Alumno.query.filter_by(dni=dni).first()
+        user_type = "alumno"
+    if not user or not check_password_hash(user.password, password):
+        return jsonify({"msg": "Credenciales incorrectas"}), 401
+    
+    additional_claims = {
+        'role': user_type,  # Add user role
+        
+        # You can add any additional user-related data here
+    }
+    
+    
+    # Crear token JWT
+    access_token = create_access_token(identity=user.dni, additional_claims=additional_claims)
+    return jsonify(access_token=access_token), 200
 
 
 
@@ -170,7 +194,7 @@ def protected():
 @app.route('/alumnos', methods=['GET'])
 @jwt_required()
 def get_alumnos():
-    alumnos = alumnos.query.all()
+    alumnos = Alumno.query.all()
     return jsonify([{
         "id": alumnos.id,
         "dni": alumnos.dni,
