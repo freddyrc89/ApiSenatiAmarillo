@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -20,10 +19,9 @@ app.config['JWT_SECRET_KEY'] = 'rootgS3nati123'  # Cambiar esto por una clave m�
 # Inicializamos la base de datos y Flask-Migrate
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-jwt = JWTManager(app)
 
-# Ahora puedes seguir con la definición de las rutas y los modelos
-
+# Inicializar el JWTManager con la aplicación Flask
+jwt = JWTManager(app)  # Aquí inicializas el JWTManager correctamente
 
 # Modelo para la tabla Vigilante
 class Vigilante(db.Model):
@@ -76,9 +74,8 @@ def register_vigilante():
     except Exception as e:
         db.session.rollback()
         return jsonify({"msg": str(e)}), 500
-    
-    # Ruta para registrar un alumnos
-    
+
+# Ruta para registrar un alumno
 @app.route('/register_alumnos', methods=['POST'])
 def register_alumno():
     try:
@@ -130,7 +127,12 @@ def login_vigilante():
 
     # Buscar el vigilante por DNI
     vigilante = Vigilante.query.filter_by(dni=dni).first()
-    if not vigilante or not check_password_hash(vigilante.password, password):
+
+    if not vigilante:
+        return jsonify({"msg": f"No se encontró el vigilante con DNI: {dni}"}), 404  # Depuración: Verifica si el vigilante existe
+
+    # Verificar la contraseña
+    if not check_password_hash(vigilante.password, password):
         return jsonify({"msg": "Credenciales incorrectas"}), 401
 
     # Crear token JWT
@@ -138,6 +140,7 @@ def login_vigilante():
     return jsonify(access_token=access_token), 200
 
 
+# Ruta de inicio de sesión para alumnos
 @app.route('/login_alumnos', methods=['POST'])
 def login_alumnos():
     dni = request.json.get('dni', None)
@@ -145,42 +148,13 @@ def login_alumnos():
 
     # Buscar el vigilante por DNI
     alumno = Alumno.query.filter_by(dni=dni).first()
-     # if not alumno or not check_password_hash(alumno.password, password):
-    if not alumno or not check_password_hash("scrypt:32768:8:1$cAFuIKgFD1A6KBZ9$5c799f200485ed4c", password):
+    if not alumno or not check_password_hash(alumno.password, password):
+    #if not alumno or not check_password_hash("scrypt:32768:8:1$cAFuIKgFD1A6KBZ9$5c799f200485ed4c", password):
         return jsonify({"msg": "Credenciales incorrectas"+str(alumno.password)}), 401
 
     # Crear token JWT
     access_token = create_access_token(identity=alumno.dni)
     return jsonify(access_token=access_token), 200
-
-@app.route('/login', methods=['POST'])
-def login():
-    dni = request.json.get('dni', None)
-    password = request.json.get('password', None)
-
-    user = Vigilante.query.filter_by(dni=dni).first()
-    user_type = "vigilante"
-    if not user:
-        user = Alumno.query.filter_by(dni=dni).first()
-        user_type = "alumno"
-    if not user or not check_password_hash(user.password, password):
-        return jsonify({"msg": "Credenciales incorrectas"}), 401
-    
-    additional_claims = {
-        'role': user_type,  # Add user role
-        
-        # You can add any additional user-related data here
-    }
-    
-    
-    # Crear token JWT
-    access_token = create_access_token(identity=user.dni, additional_claims=additional_claims)
-    return jsonify(access_token=access_token), 200
-
-
-
-
-
 
 
 # Ruta protegida para acceder con JWT
@@ -217,6 +191,7 @@ def get_vigilantes():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
