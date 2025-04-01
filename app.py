@@ -146,6 +146,38 @@ def login_vigilante():
 
     return jsonify({"token": token}), 200
 
+@app.route('/login', methods=['POST'])
+def login():
+
+    dni = request.json.get('dni', None)
+    password = request.json.get('password', None)
+    
+    try:
+        user = db.session.query(Vigilante).filter_by(dni=dni).first()
+        role = "vigilante"
+
+        if not user:
+            user = db.session.query(Alumno).filter_by(dni=dni).first()
+            role = "alumno"
+
+        if not user:
+            return jsonify({"msg": f"No se encontró el usuario con DNI: {dni}"}), 404
+
+        if not check_password_hash(user.password, password):
+            return jsonify({"msg": "Credenciales incorrectas"}), 401
+
+        payload = {
+            "dni": user.dni,
+            "password": datetime.datetime.utcnow() + datetime.timedelta(hours=1),
+            "role": role
+        }
+        token = create_access_token(identity=user.dni, additional_claims=payload)
+
+        return jsonify({"token": token}), 200
+    finally:
+        db.session.close()
+
+
 # Ruta de inicio de sesión para alumnos
 @app.route('/login_alumnos', methods=['POST'])
 def login_alumno():
