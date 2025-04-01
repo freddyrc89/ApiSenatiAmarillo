@@ -142,7 +142,7 @@ def login_vigilante():
         "dni": vigilante.dni,
         "password": datetime.datetime.utcnow() + datetime.timedelta(hours=1)
     }
-    token = create_access_token(identity=payload)
+    token = create_access_token(identity=vigilante.dni, additional_claims=payload)
 
     return jsonify({"token": token}), 200
 
@@ -163,7 +163,7 @@ def login_alumno():
         "dni": alumno.dni,
         "password": datetime.datetime.utcnow() + datetime.timedelta(hours=1)
     }
-    token = create_access_token(identity=payload)
+    token = create_access_token(identity=alumno.dni, additional_claims=payload)
 
     return jsonify({"token": token}), 200
 
